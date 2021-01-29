@@ -1,0 +1,4 @@
+include ':FileQueue'
+include ':filequeue-android'
+include ':app'
+rootProject.name = "FileQueueSample"
