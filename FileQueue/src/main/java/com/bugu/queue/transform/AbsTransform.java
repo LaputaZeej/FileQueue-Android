@@ -1,5 +1,6 @@
 package com.bugu.queue.transform;
 
+import com.bugu.queue.util.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.RandomAccessFile;
 
@@ -7,6 +8,7 @@ import java.io.RandomAccessFile;
  * Author by xpl, Date on 2021/1/28.
  */
 public abstract class AbsTransform<E> implements Transform<E> {
+    private final boolean DEBUG = false;
     private final static int BUFFER_LENGTH = 1024 * 3;
 
     protected void write0(RandomAccessFile raf, byte[] data) throws Exception {
@@ -14,7 +16,7 @@ public abstract class AbsTransform<E> implements Transform<E> {
             return;
         }
         int length = data.length;
-        System.out.println("[write] index = " + length + "/" + BUFFER_LENGTH + " = " + length / BUFFER_LENGTH);
+        log("[write] index = " + length + "/" + BUFFER_LENGTH + " = " + length / BUFFER_LENGTH);
         // 1.先写收据长度
         raf.writeLong(length);
         // 2.再写数据
@@ -27,7 +29,7 @@ public abstract class AbsTransform<E> implements Transform<E> {
             } else {
                 len = Math.min(left, BUFFER_LENGTH);
             }
-            System.out.println("[write] length = " + length + " ,start = " + start + " ,writeLen = " + len + " ,left = " + left);
+            log("[write] length = " + length + " ,start = " + start + " ,writeLen = " + len + " ,left = " + left);
             raf.write(data, start, len);
             start += len;
         }
@@ -37,7 +39,7 @@ public abstract class AbsTransform<E> implements Transform<E> {
         // 1.先读数据长度
         long length = raf.readLong();
         if (length < 0) throw new IllegalStateException("无法读取数据长度");
-        System.out.println("[read] length = " + length);
+        log("[read] length = " + length);
         // 2.读数据
         byte[] buffer = new byte[BUFFER_LENGTH];
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -64,9 +66,14 @@ public abstract class AbsTransform<E> implements Transform<E> {
             }
         }
         byte[] bytes = out.toByteArray();
-        System.out.println("[read] end = " + bytes.length);
+        log("[read] end = " + bytes.length);
         out.flush();
         out.close();
         return bytes;
+    }
+
+    private void log(String msg) {
+        if (!DEBUG) return;
+        Logger.info(msg);
     }
 }

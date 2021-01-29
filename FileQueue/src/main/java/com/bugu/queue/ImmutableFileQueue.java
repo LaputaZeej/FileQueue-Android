@@ -156,9 +156,11 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         checkState();
         if (e == null) throw new NullPointerException();
         final ReentrantLock putLock = this.putLock;
-        info("start put ...............");
+        //info("start put ...............");
         putLock.lockInterruptibly();
         if (isClosed()) {
+            info("start put closed");
+            putLock.unlock();
             return;
         }
         try {
@@ -170,6 +172,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
                 notFull.await();
             }
             if (isClosed()) {
+                putLock.unlock();
                 return;
             }
             enqueue(e);
@@ -197,7 +200,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
 
     private void notifyChanged(int type) {
         String tag = type == 0 ? "put " : "take";
-        info(tag + " -> " + fileQueueHeader.toString());
+        // info(tag + " -> " + fileQueueHeader.toString());
         if (onFileQueueChanged != null) {
             onFileQueueChanged.onChanged(this, type, fileQueueHeader);
         }
@@ -240,6 +243,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         final ReentrantLock takeLock = this.takeLock;
         takeLock.lockInterruptibly();
         if (isClosed()) {
+            takeLock.unlock();
             throw new FileQueueException("  closed ");
         }
         try {

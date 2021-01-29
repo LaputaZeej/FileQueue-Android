@@ -16,7 +16,7 @@ import static com.bugu.queue.ImmutableFileQueue.MIN_SIZE;
  */
 public class MutableFileQueue<E> implements FileQueue<E> {
     private ImmutableFileQueue<E> fileQueue;
-    private OnFileQueueChanged onFileQueueChanged;
+    private OnFileQueueChanged2 onFileQueueChanged;
     private long max;
     private static final long MAX_SIZE = Size._G;
 
@@ -61,6 +61,9 @@ public class MutableFileQueue<E> implements FileQueue<E> {
             if (Math.abs(length - tail) < MIN_SIZE / 8) {
                 length = length + MIN_SIZE;
                 if (length > max) {
+                    if (onFileQueueChanged != null) {
+                        onFileQueueChanged.onChanged(this, 0, fileQueueHeader, true);
+                    }
                     return;
                 }
                 Logger.info("capacity!!!");
@@ -110,7 +113,7 @@ public class MutableFileQueue<E> implements FileQueue<E> {
         return fileQueue.isClosed();
     }
 
-    public void setOnFileQueueChanged(OnFileQueueChanged onFileQueueChanged) {
+    public void setOnFileQueueChanged(OnFileQueueChanged2 onFileQueueChanged) {
         this.onFileQueueChanged = onFileQueueChanged;
     }
 }

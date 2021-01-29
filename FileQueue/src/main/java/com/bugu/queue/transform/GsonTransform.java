@@ -1,6 +1,5 @@
 package com.bugu.queue.transform;
 
-import com.bugu.queue.util.Logger;
 import com.google.gson.Gson;
 
 import java.io.RandomAccessFile;
@@ -27,7 +26,6 @@ public class GsonTransform<E> extends AbsTransform<E> {
     public E read(RandomAccessFile raf) throws Exception {
         byte[] read = read0(raf);
         String json = new String(read);
-        Logger.info("json read : " + json);
         return gson.fromJson(json, clz);
     }
 }

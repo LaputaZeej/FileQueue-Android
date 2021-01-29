@@ -127,4 +127,13 @@ public class FileQueueCompat {
                 return null;
         }
     }
+
+    public static <E> Transform<E> getTransform(Class<E> clz) {
+        if (MessageLite.class.isAssignableFrom(clz)) {
+            ProtobufTransform<?> transform = new ProtobufTransform(clz);
+            return (Transform<E>) transform;
+        } else {
+            return new GsonTransform<E>(clz);
+        }
+    }
 }

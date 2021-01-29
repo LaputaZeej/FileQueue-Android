@@ -10,10 +10,14 @@ import androidx.core.content.ContextCompat;
 import com.bugu.queue.FileQueue;
 import com.bugu.queue.MutableFileQueue;
 import com.bugu.queue.OnFileQueueChanged;
+import com.bugu.queue.OnFileQueueChanged2;
 import com.bugu.queue.header.Header;
+import com.bugu.queue.transform.GsonTransform;
+import com.bugu.queue.transform.ProtobufTransform;
 import com.bugu.queue.transform.Transform;
 import com.bugu.queue.util.FileQueueCompat;
 import com.bugu.queue.util.Size;
+import com.google.protobuf.MessageLite;
 
 import java.util.Locale;
 
@@ -34,6 +38,13 @@ public class AndroidFileQueue<E> {
         initFileQueue(path, transform);
     }
 
+    public AndroidFileQueue(final Context context, String path, Class<E> clz) {
+        this.context = context;
+        this.path = path;
+        checkPermission(context);
+        initFileQueue(path, getTransform(clz));
+    }
+
   /*  public AndroidFileQueue(final Context context, String path, Class<E> clz, int type) {
         this.context = context;
         this.path = path;
@@ -50,9 +61,14 @@ public class AndroidFileQueue<E> {
     private void initFileQueue(String path, Transform<E> transform) {
         if (transform == null) throw new IllegalStateException("没有Transform");
         this.fileQueue = new MutableFileQueue<E>(path, maxSize, transform);
-        this.fileQueue.setOnFileQueueChanged(new OnFileQueueChanged() {
+        this.fileQueue.setOnFileQueueChanged(new OnFileQueueChanged2() {
             @Override
-            public void onChanged(FileQueue<?> fileQueue, int i, Header fileQueueHeader) {
+            public void onChanged(FileQueue<?> fileQueue, int type, Header header) {
+                onChanged(fileQueue, type, header, false);
+            }
+
+            @Override
+            public void onChanged(FileQueue<?> fileQueue, int i, Header fileQueueHeader, boolean full) {
                 long head = fileQueueHeader.getHead();
                 long tail = fileQueueHeader.getTail();
                 long length = fileQueueHeader.getLength();
@@ -62,14 +78,14 @@ public class AndroidFileQueue<E> {
                 String logger = "[head = " + head + " tail = " + tail + "]" + formatLength + "/" + formatMaxSize + "[" + ratio + "]";
                 System.out.println(logger);
                 if (onFileChanged != null) {
-                    onFileChanged.onChanged(AndroidFileQueue.this, logger);
+                    onFileChanged.onChanged(AndroidFileQueue.this, logger,full);
                 }
             }
         });
     }
 
-    private Transform<E> getTransform(Class<E> clz, int type) {
-        return FileQueueCompat.getTransform(clz, type);
+    private Transform<E> getTransform(Class<E> clz) {
+        return FileQueueCompat.getTransform(clz);
     }
 
     private void checkPermission(Context context) {
@@ -105,12 +121,24 @@ public class AndroidFileQueue<E> {
         return fileQueue.delete();
     }
 
-    public boolean isClosed(){
+    public boolean isClosed() {
         return fileQueue.isClosed();
     }
 
     Header getHeader() {
         checkPermission(context);
         return fileQueue.getHeader();
+    }
+
+    public static class Factory {
+        public static <E extends MessageLite> AndroidFileQueue<E> createProtobufFileQueue(Context context, String path, Class<E> clz) {
+            return new AndroidFileQueue<E>(context, path, new ProtobufTransform<E>(clz));
+
+        }
+
+        public static <E> AndroidFileQueue<E> createGsonFileQueue(Context context, String path, Class<E> clz) {
+            return new AndroidFileQueue<E>(context, path, new GsonTransform<E>(clz));
+
+        }
     }
 }

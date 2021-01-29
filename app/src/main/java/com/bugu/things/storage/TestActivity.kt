@@ -2,6 +2,7 @@ package com.bugu.things.storage
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
@@ -12,41 +13,47 @@ import androidx.lifecycle.lifecycleScope
 import com.bugu.queue.android.AndroidFileQueue
 import com.bugu.queue.android.Ext
 import com.bugu.queue.bean._MqttMessage
-import com.bugu.things.storage.bean.MqttMessage
-import com.bugu.things.storage.bean.print
+import com.bugu.things.storage.bean.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
-import java.lang.Runnable
 
 class TestActivity : AppCompatActivity() {
     private var fileQueue: AndroidFileQueue<MqttMessage>? = null
     private var fileQueueProto: AndroidFileQueue<_MqttMessage.MqttMessage>? = null
 
+    private val toWrite: String = TEXT_01
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         request()
-        tv_message.movementMethod = ScrollingMovementMethod.getInstance()
+        initGson()
+        initProto()
+    }
 
-        btn_01.setOnClickListener {
+    private fun initGson() {
+        tv_message_gson.movementMethod = ScrollingMovementMethod.getInstance()
+        btn_put_gson.setOnClickListener {
             if (fileQueue == null || fileQueue?.isClosed == true) {
                 fileQueue = createFileQueue()
             }
             lifecycleScope.launch {
                 launch(Dispatchers.IO) {
                     try {
-                        repeat(1000) { index ->
+                        var index = 0L
+                        while (true) {
                             fileQueue?.put(
                                 MqttMessage(
                                     System.currentTimeMillis(),
                                     (index % 2).toInt(),
-                                    "t->$index $TEXT_ENGLISH",
+                                    "t->$index $toWrite",
                                     index.toLong(),
                                     "DESC ",
                                     "TITLE ",
                                     "NAME "
                                 )
                             )
+                            index++
                         }
                     } catch (e: Throwable) {
                         e.printStackTrace()
@@ -55,7 +62,7 @@ class TestActivity : AppCompatActivity() {
             }
         }
 
-        btn_02.setOnClickListener {
+        btn_take_gson.setOnClickListener {
             lifecycleScope.launch {
                 if (fileQueue == null || fileQueue?.isClosed == true) {
                     fileQueue = createFileQueue()
@@ -68,27 +75,30 @@ class TestActivity : AppCompatActivity() {
                         null
                     }
                 }
-                tv_message.text = message.toString()
+                tv_message_gson.text = message.toString()
 
             }
         }
 
-
-        btn_delete.setOnClickListener {
+        btn_delete_gson.setOnClickListener {
             val delete = fileQueue?.delete()
-            val delete2 = fileQueueProto?.delete()
-            tv_info.text = "gson delete $delete ! proti delete $delete2 !"
+            tv_info_gson.text = "delete -> $delete !"
         }
+    }
 
-        btn_put.setOnClickListener {
+    private fun initProto() {
+        tv_message_proto.movementMethod = ScrollingMovementMethod.getInstance()
+        btn_put_proto.setOnClickListener {
             if (fileQueueProto == null || fileQueueProto?.isClosed == true) {
                 fileQueueProto = createFileQueueProto()
             }
             lifecycleScope.launch {
                 launch(Dispatchers.IO) {
                     try {
-                        repeat(1000) {
-                            fileQueueProto?.put(createMqttMessage(it.toLong()))
+                        var index = 0
+                        while (true) {
+                            fileQueueProto?.put(createMqttMessage(index.toLong()))
+                            index++
                         }
                     } catch (e: Throwable) {
                         e.printStackTrace()
@@ -96,7 +106,8 @@ class TestActivity : AppCompatActivity() {
                 }
             }
         }
-        btn_take.setOnClickListener {
+
+        btn_take_proto.setOnClickListener {
             if (fileQueueProto == null || fileQueueProto?.isClosed == true) {
                 fileQueueProto = createFileQueueProto()
             }
@@ -110,43 +121,67 @@ class TestActivity : AppCompatActivity() {
                         null
                     }
                 }.await()
-                tv_message.text = message?.print() ?: "-null"
-                Log.i("xxxxx", "${message?.print() ?: "-null"}")
+                tv_message_proto.text = message?.print() ?: "-null"
             }
         }
 
+        btn_delete_proto.setOnClickListener {
+            val delete = fileQueueProto?.delete()
+            tv_info_proto.text = "delete -> $delete !"
+        }
     }
 
-
     private fun createFileQueueProto(): AndroidFileQueue<_MqttMessage.MqttMessage> =
-        Ext.createProtobufFileQueue(this, path("proto_2"), _MqttMessage.MqttMessage::class.java)
-            .apply {
-                setOnFileChanged { _, logger -> updateInfo(logger) }
+        Ext.createProtobufFileQueue(
+            this,
+            path("proto/test01"),
+            _MqttMessage.MqttMessage::class.java
+        ).apply {
+            setOnFileChanged { _, logger, full ->
+                updateProtoInfo(logger)
+                lifecycleScope.launch {
+                    if (full) {
+                        ll_proto.setBackgroundColor(Color.parseColor("#ff9988"))
+                        tv_message_proto.text = "满"
+                    }
+                }
             }
+        }
+
+    private fun createFileQueue(): AndroidFileQueue<MqttMessage> {
+        val path = path("gson/test01")
+        return Ext.createGsonFileQueue(this, path, MqttMessage::class.java).apply {
+            setOnFileChanged { _, logger, full ->
+                updateGsonInfo(logger)
+                lifecycleScope.launch {
+                    if (full) {
+                        ll_gson.setBackgroundColor(Color.parseColor("#ff9988"))
+                        tv_message_gson.text = "满"
+                    }
+                }
+            }
+        }
+    }
 
     private fun createMqttMessage(index: Long): _MqttMessage.MqttMessage =
         _MqttMessage.MqttMessage.newBuilder()
             .setTime(System.currentTimeMillis())
-            .setContent("$index -> $TEXT_ENGLISH 我哎学习\n\n\n\n\n\n\n我哎学习")
+            .setContent("$index -> $toWrite 我哎学习\n\n\n\n\n\n\n我哎学习")
             .setId(index)
             .setType((index % 2).toInt())
             .build()
 
-    private fun createFileQueue(): AndroidFileQueue<MqttMessage> {
-        val path = path()
-        return Ext.createGsonFileQueue(this, path, MqttMessage::class.java).apply {
-            setOnFileChanged { _, logger -> updateInfo(logger) }
-        }
-    }
 
-    private fun updateInfo(msg: String) {
+    private fun updateGsonInfo(msg: String) {
         lifecycleScope.launch {
-            tv_info.text = msg
+            tv_info_gson.text = msg
         }
     }
 
-    private fun startThread(r: Runnable) {
-        Thread(r).start()
+    private fun updateProtoInfo(msg: String) {
+        lifecycleScope.launch {
+            tv_info_proto.text = msg
+        }
     }
 
     private fun request() {
@@ -163,16 +198,15 @@ class TestActivity : AppCompatActivity() {
         }
     }
 
-    private fun path(tag: String = ""): String {
-        val file =
-            android.os.Environment.getExternalStoragePublicDirectory("apk/${tag}takeAndPutMutable_0000009_10G.txt")
-//            android.os.Environment.getExternalStoragePublicDirectory("apk/takeAndPutMutable_0000009_13G.txt")
-        Log.i("FileQueue", "file ${file.exists()} path = ${file.absolutePath} ")
-        return file.absolutePath
+    private fun path(fileName: String): String {
+        val path = getPath(applicationContext, fileName)
+        Log.i("FileQueue", "path  = $path")
+        return path
     }
 
     override fun onDestroy() {
         super.onDestroy()
         fileQueue?.close()
+        fileQueueProto?.close()
     }
 }

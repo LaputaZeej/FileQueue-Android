@@ -12,12 +12,12 @@ import com.google.protobuf.MessageLite;
 public class Ext {
 
     public static <E extends MessageLite> AndroidFileQueue<E> createProtobufFileQueue(Context context, String path, Class<E> clz) {
-        return new AndroidFileQueue<E>(context, path, new ProtobufTransform<E>(clz));
+        return new AndroidFileQueue<E>(context, path, clz);
 
     }
 
     public static <E> AndroidFileQueue<E> createGsonFileQueue(Context context, String path, Class<E> clz) {
-        return new AndroidFileQueue<E>(context, path, new GsonTransform<E>(clz));
+        return new AndroidFileQueue<E>(context, path, clz);
 
     }
 }

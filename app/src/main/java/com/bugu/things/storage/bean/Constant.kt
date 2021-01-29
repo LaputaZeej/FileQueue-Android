@@ -1,4 +1,4 @@
-package com.bugu.things.storage
+package com.bugu.things.storage.bean
 
 /**
  * Author by xpl, Date on 2021/1/26.

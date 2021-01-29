@@ -2,6 +2,8 @@ package com.bugu.things.storage
 
 import com.bugu.queue.bean._MqttMessage
 import com.bugu.things.storage.bean.MqttMessage
+import com.bugu.things.storage.bean.TEXT
+import com.bugu.things.storage.bean.TEXT_01
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.protobuf.Parser
@@ -87,7 +89,7 @@ class ProtobufUnitTest {
         // 怎么从连续的流中读出对象？
         val PARSER = getParser()
         val message = _MqttMessage.MqttMessage.newBuilder()
-            .setContent("abc123 ${TEXT} 456xyz")
+            .setContent("abc123 $TEXT 456xyz")
             .setId(1)
             .setTime(System.currentTimeMillis())
             .setType(0)
@@ -114,7 +116,7 @@ class ProtobufUnitTest {
         // 怎么从连续的流中读出对象？
         val PARSER = getParser()
         val message = _MqttMessage.MqttMessage.newBuilder()
-            .setContent("abc123 ${TEXT_01} 456xyz")
+            .setContent("abc123 $TEXT_01 456xyz")
             .setId(1)
             .setTime(System.currentTimeMillis())
             .setType(0)
@@ -141,7 +143,7 @@ class ProtobufUnitTest {
     fun t06() {
         val PARSER = getParser()
         val message = _MqttMessage.MqttMessage.newBuilder()
-            .setContent("abc123 ${TEXT_01} 456xyz")
+            .setContent("abc123 $TEXT_01 456xyz")
             .setId(1)
             .setTime(System.currentTimeMillis())
             .setType(0)
@@ -168,7 +170,7 @@ class ProtobufUnitTest {
     fun t07() {
         println("Charset.defaultCharset()) = ${Charset.defaultCharset()}")
         val message = _MqttMessage.MqttMessage.newBuilder()
-            .setContent("abc123 ${TEXT} 456xyz")
+            .setContent("abc123 $TEXT 456xyz")
             .setId(1)
             .setTime(System.currentTimeMillis())
             .setType(0)
