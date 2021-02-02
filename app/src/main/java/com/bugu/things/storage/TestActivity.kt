@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -54,6 +55,9 @@ class TestActivity : AppCompatActivity() {
                                 )
                             )
                             index++
+                            if (index > 10000000L) {
+                                index = 0
+                            }
                         }
                     } catch (e: Throwable) {
                         e.printStackTrace()
@@ -81,8 +85,17 @@ class TestActivity : AppCompatActivity() {
         }
 
         btn_delete_gson.setOnClickListener {
-            val delete = fileQueue?.delete()
-            tv_info_gson.text = "delete -> $delete !"
+
+            lifecycleScope.launch {
+                val r = suspendDialog {
+                    setMessage("是否删除GSON？")
+                }
+                if (r){
+                    val delete = fileQueue?.delete()
+                    tv_info_gson.text = "delete -> $delete !"
+                }
+            }
+
         }
     }
 
@@ -95,10 +108,13 @@ class TestActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 launch(Dispatchers.IO) {
                     try {
-                        var index = 0
+                        var index = 0L
                         while (true) {
-                            fileQueueProto?.put(createMqttMessage(index.toLong()))
+                            fileQueueProto?.put(createMqttMessage(index))
                             index++
+                            if (index > 10000000L) {
+                                index = 0
+                            }
                         }
                     } catch (e: Throwable) {
                         e.printStackTrace()
@@ -126,8 +142,15 @@ class TestActivity : AppCompatActivity() {
         }
 
         btn_delete_proto.setOnClickListener {
-            val delete = fileQueueProto?.delete()
-            tv_info_proto.text = "delete -> $delete !"
+            lifecycleScope.launch {
+                val r = suspendDialog {
+                    setMessage("是否删除Proto？")
+                }
+                if (r){
+                    val delete = fileQueueProto?.delete()
+                    tv_info_proto.text = "delete -> $delete !"
+                }
+            }
         }
     }
 

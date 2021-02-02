@@ -1,5 +1,7 @@
 package com.bugu.queue.transform;
 
+import com.bugu.queue.ImmutableFileQueue;
+import com.bugu.queue.bean.FileQueueException;
 import com.bugu.queue.util.Logger;
 import java.io.ByteArrayOutputStream;
 import java.io.RandomAccessFile;
@@ -15,6 +17,7 @@ public abstract class AbsTransform<E> implements Transform<E> {
         if (data == null) {
             return;
         }
+        checkSize(data);
         int length = data.length;
         log("[write] index = " + length + "/" + BUFFER_LENGTH + " = " + length / BUFFER_LENGTH);
         // 1.先写收据长度
@@ -33,6 +36,12 @@ public abstract class AbsTransform<E> implements Transform<E> {
             raf.write(data, start, len);
             start += len;
         }
+    }
+
+    private void checkSize(byte[] data) throws FileQueueException {
+            if (data.length> ImmutableFileQueue.THRESHOLD_SIZE){
+                throw new FileQueueException("数据过大");
+            }
     }
 
     protected byte[] read0(RandomAccessFile raf) throws Exception {

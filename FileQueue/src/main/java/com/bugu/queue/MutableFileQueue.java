@@ -9,6 +9,7 @@ import com.bugu.queue.util.Size;
 import java.io.RandomAccessFile;
 
 import static com.bugu.queue.ImmutableFileQueue.MIN_SIZE;
+import static com.bugu.queue.ImmutableFileQueue.THRESHOLD_SIZE;
 
 
 /**
@@ -42,7 +43,16 @@ public class MutableFileQueue<E> implements FileQueue<E> {
 
     private void initFileQueue(ImmutableFileQueue<E> fileQueue) {
         this.fileQueue = fileQueue;
-        this.fileQueue.setCheckDiskCallback((fq) -> fq.getHeader().getLength() >= MutableFileQueue.this.max);
+        this.fileQueue.setCheckDiskCallback((fq) -> {
+            long length = fq.getHeader().getLength();
+            long max = MutableFileQueue.this.max;
+            if (length >= max) {
+                Logger.info("<CheckDiskCallback> length = " + length + " ,max = " + max);
+                return true;
+            } else {
+                return false;
+            }
+        });
         this.fileQueue.setOnFileQueueChanged((fq, type, header) -> {
             if (type == 0) {
                 tryCapacity(header);
@@ -58,15 +68,16 @@ public class MutableFileQueue<E> implements FileQueue<E> {
         try {
             long tail = fileQueueHeader.getTail();
             long length = fileQueueHeader.getLength();
-            if (Math.abs(length - tail) < MIN_SIZE / 8) {
+            if (Math.abs(length - tail) <= THRESHOLD_SIZE) {
                 length = length + MIN_SIZE;
                 if (length > max) {
+                    Logger.info("tryCapacity -> max size");
                     if (onFileQueueChanged != null) {
                         onFileQueueChanged.onChanged(this, 0, fileQueueHeader, true);
                     }
                     return;
                 }
-                Logger.info("capacity!!!");
+                Logger.info("capacity!!! length = " + length);
                 fileQueueHeader.setLength(length);
                 writeRaf = fileQueue.getHeaderRaf();
                 fileQueue.getHeader().setLength(length);

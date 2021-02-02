@@ -25,7 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ImmutableFileQueue<E> implements FileQueue<E> {
 
 
-    public static final long MIN_SIZE = Size._M * 2;
+    public static final long MIN_SIZE = Size._M << 1; // 2M
+    public static final long THRESHOLD_SIZE = MIN_SIZE >> 3; // 128K 一个数据不能大于128K
 
     private String path;
     private long capacity;
@@ -189,13 +190,21 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     }
 
     private boolean checkDiskFull() {
-        return checkDiskCallback == null ? cDEFAULT.check(this) : checkDiskCallback.check(this);
+        boolean result = checkDiskCallback == null ? cDEFAULT.check(this) : checkDiskCallback.check(this);
+        if (result) {
+            info("<checkDiskFull> result = " + result + " ,checkDiskCallback = " + checkDiskCallback);
+        }
+        return result;
     }
 
-    private boolean validateFull() {
+    boolean validateFull() {
         long tail = fileQueueHeader.getTail();
         long length = fileQueueHeader.getLength();
-        return length - tail <= MIN_SIZE / 8;
+        boolean result = length - tail < THRESHOLD_SIZE;
+        if (result) {
+            info("<validateFull> tail = " + tail + " ,length = " + length + " ,result = " + result);
+        }
+        return result;
     }
 
     private void notifyChanged(int type) {
