@@ -6,28 +6,29 @@ import android.graphics.Color
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.util.Log
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.bugu.queue.android.AndroidFileQueue
-import com.bugu.queue.android.Ext
+import com.bugu.queue.FileQueue
+import com.bugu.queue.MutableFileQueue
+import com.bugu.queue.bean.GenericityEntity
 import com.bugu.queue.bean._MqttMessage
 import com.bugu.things.storage.bean.*
+import com.bugu.things.storage.ext.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 
 class TestActivity : AppCompatActivity() {
-    private var fileQueue: AndroidFileQueue<MqttMessage>? = null
-    private var fileQueueProto: AndroidFileQueue<_MqttMessage.MqttMessage>? = null
+    private var fileQueue: MutableFileQueue<List<MqttMessage>>? = null
+    private var fileQueueProto: MutableFileQueue<_MqttMessage.MqttMessage>? = null
 
-    private val toWrite: String = TEXT_01
+    private val toWrite: String = TEXT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        request()
+        //request()
         initGson()
         initProto()
     }
@@ -44,14 +45,40 @@ class TestActivity : AppCompatActivity() {
                         var index = 0L
                         while (true) {
                             fileQueue?.put(
-                                MqttMessage(
-                                    System.currentTimeMillis(),
-                                    (index % 2).toInt(),
-                                    "t->$index $toWrite",
-                                    index.toLong(),
-                                    "DESC ",
-                                    "TITLE ",
-                                    "NAME "
+                                listOf(
+                                    MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+                                    ), MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+                                    ), MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+                                    ), MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+                                    ), MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+
+                                    ), MqttMessage(
+                                        System.currentTimeMillis(),
+                                        (index % 2).toInt(),
+                                        "t->$index $toWrite",
+                                        index.toLong()
+
+                                    )
                                 )
                             )
                             index++
@@ -73,7 +100,8 @@ class TestActivity : AppCompatActivity() {
                 }
                 val message = withContext(Dispatchers.IO) {
                     try {
-                        fileQueue?.take()
+                        val take = fileQueue?.take()
+                        take
                     } catch (e: Throwable) {
                         e.printStackTrace()
                         null
@@ -90,15 +118,17 @@ class TestActivity : AppCompatActivity() {
                 val r = suspendDialog {
                     setMessage("是否删除GSON？")
                 }
-                if (r){
+                if (r) {
                     val delete = fileQueue?.delete()
                     tv_info_gson.text = "delete -> $delete !"
+                    ll_gson.setBackgroundColor(Color.parseColor("#ffffff"))
                 }
             }
 
         }
     }
 
+    var takeProtoJob: Job? = null
     private fun initProto() {
         tv_message_proto.movementMethod = ScrollingMovementMethod.getInstance()
         btn_put_proto.setOnClickListener {
@@ -124,10 +154,11 @@ class TestActivity : AppCompatActivity() {
         }
 
         btn_take_proto.setOnClickListener {
+            takeProtoJob?.cancel()
             if (fileQueueProto == null || fileQueueProto?.isClosed == true) {
                 fileQueueProto = createFileQueueProto()
             }
-            lifecycleScope.launch {
+            takeProtoJob = lifecycleScope.launch {
                 val message = async(Dispatchers.IO) {
                     try {
                         val take = fileQueueProto?.take()
@@ -146,44 +177,42 @@ class TestActivity : AppCompatActivity() {
                 val r = suspendDialog {
                     setMessage("是否删除Proto？")
                 }
-                if (r){
+                if (r) {
                     val delete = fileQueueProto?.delete()
                     tv_info_proto.text = "delete -> $delete !"
+                    ll_proto.setBackgroundColor(Color.parseColor("#000000"))
                 }
             }
         }
     }
 
-    private fun createFileQueueProto(): AndroidFileQueue<_MqttMessage.MqttMessage> =
-        Ext.createProtobufFileQueue(
-            this,
-            path("proto/test01"),
-            _MqttMessage.MqttMessage::class.java
-        ).apply {
-            setOnFileChanged { _, logger, full ->
-                updateProtoInfo(logger)
-                lifecycleScope.launch {
-                    if (full) {
-                        ll_proto.setBackgroundColor(Color.parseColor("#ff9988"))
-                        tv_message_proto.text = "满"
-                    }
-                }
-            }
-        }
+    private fun createFileQueueProto(): MutableFileQueue<_MqttMessage.MqttMessage> =
+        createProtoFileQueue<_MqttMessage.MqttMessage>(path("proto/test01"))
+            .apply {
 
-    private fun createFileQueue(): AndroidFileQueue<MqttMessage> {
-        val path = path("gson/test01")
-        return Ext.createGsonFileQueue(this, path, MqttMessage::class.java).apply {
-            setOnFileChanged { _, logger, full ->
-                updateGsonInfo(logger)
-                lifecycleScope.launch {
-                    if (full) {
-                        ll_gson.setBackgroundColor(Color.parseColor("#ff9988"))
-                        tv_message_gson.text = "满"
+                setOnFileQueueChanged { _, _, header ->
+                    updateProtoInfo(header.logger(this@TestActivity, this.max))
+                }
+                setOnFileQueueStateChanged { _, state ->
+                    if (state == FileQueue.State.FULL) {
+                        ll_proto.setBackgroundColor(Color.parseColor("#ff9988"))
                     }
                 }
             }
-        }
+
+    private fun createFileQueue(): MutableFileQueue<List<MqttMessage>> {
+        val path = path("gson/test01")
+        return createGsonFileQueue<List<MqttMessage>>(path)
+            .apply {
+                setOnFileQueueChanged { _, _, header ->
+                    updateGsonInfo(header.logger(this@TestActivity, this.max))
+                }
+                setOnFileQueueStateChanged { _, state ->
+                    if (state == FileQueue.State.FULL) {
+                        ll_gson.setBackgroundColor(Color.parseColor("#ff9988"))
+                    }
+                }
+            }
     }
 
     private fun createMqttMessage(index: Long): _MqttMessage.MqttMessage =
@@ -231,5 +260,16 @@ class TestActivity : AppCompatActivity() {
         super.onDestroy()
         fileQueue?.close()
         fileQueueProto?.close()
+    }
+
+    fun test() {
+        val message = _MqttMessage.MqttMessage.newBuilder()
+            .setContent("abc123 $TEXT 456xyz")
+            .setId(1)
+            .setTime(System.currentTimeMillis())
+            .setType(0)
+            .build()
+        val pack = com.google.protobuf.Any.pack<_MqttMessage.MqttMessage>(message)
+        GenericityEntity.FileQueueMessage.newBuilder().setData(pack).build()
     }
 }

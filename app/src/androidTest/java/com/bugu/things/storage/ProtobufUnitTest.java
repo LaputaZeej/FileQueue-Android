@@ -7,10 +7,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
-import com.bugu.queue.android.AndroidFileQueue;
+import com.bugu.queue.MutableFileQueue;
+import com.bugu.queue.bean.GenericityEntity;
 import com.bugu.queue.bean._MqttMessage;
-import com.bugu.things.storage.bean.ExtsKt;
+import com.bugu.queue.transform.ProtobufTransform;
+import com.bugu.queue.util.Size;
 import com.bugu.things.storage.bean.MqttMessage;
+import com.bugu.things.storage.ext.ExtsKt;
+import com.bugu.things.storage.ext.FileQueueExtKt;
+import com.google.gson.reflect.TypeToken;
+import com.google.protobuf.Any;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -18,6 +24,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.File;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.bugu.things.storage.Utils.createProtobufMqttMessage;
 import static com.bugu.things.storage.Utils.delete;
@@ -47,7 +56,7 @@ public class ProtobufUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test01.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
         } catch (Exception e) {
@@ -64,7 +73,7 @@ public class ProtobufUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test02.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
         } catch (Exception e) {
@@ -81,7 +90,7 @@ public class ProtobufUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test03.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
             _MqttMessage.MqttMessage mqttMessage = createProtobufMqttMessage(1);
@@ -98,6 +107,34 @@ public class ProtobufUnitTest {
     }
 
     /**
+     * 存和取 protobuf 泛型
+     */
+    @Test
+    public void test0301() {
+        try {
+            Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+            _MqttMessage.MqttMessage mqttMessage = createProtobufMqttMessage(1);
+            GenericityEntity.FileQueueMessage msg = GenericityEntity.FileQueueMessage.newBuilder().setData(Any.pack(mqttMessage)).build();
+            String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test0301.txt");
+            MutableFileQueue<GenericityEntity.FileQueueMessage> fileQueue =
+                    new MutableFileQueue.Builder<GenericityEntity.FileQueueMessage>()
+                            .path(path)
+                            .transform(new ProtobufTransform<>(GenericityEntity.FileQueueMessage.class))
+                            .build();
+            Utils.info(TAG, "put start ");
+            fileQueue.put(msg);
+            Utils.info(TAG, "put end ");
+            GenericityEntity.FileQueueMessage take = fileQueue.take();
+            Utils.info(TAG, "take end");
+            Any data = take.getData();
+            _MqttMessage.MqttMessage unpack = data.unpack(_MqttMessage.MqttMessage.class);
+            Utils.info(TAG, unpack.getContent());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * 同时存和取
      */
     @Test
@@ -107,7 +144,7 @@ public class ProtobufUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test04.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -180,10 +217,11 @@ public class ProtobufUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test05.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -249,10 +287,11 @@ public class ProtobufUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test06.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -321,10 +360,11 @@ public class ProtobufUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/ProtobufUnitTest/test07.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<_MqttMessage.MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -385,7 +425,12 @@ public class ProtobufUnitTest {
     }
 
     @NotNull
-    private AndroidFileQueue<_MqttMessage.MqttMessage> createFileQueue(Context appContext, String path) {
-        return new AndroidFileQueue<>(appContext, path, _MqttMessage.MqttMessage.class);
+    private MutableFileQueue<_MqttMessage.MqttMessage> createFileQueue(Context appContext, String path) {
+        return new MutableFileQueue.Builder<_MqttMessage.MqttMessage>().path(path)
+                .transform(new ProtobufTransform<>(_MqttMessage.MqttMessage.class))
+                .maxSize(Size._G)
+                .build();
     }
+
+
 }

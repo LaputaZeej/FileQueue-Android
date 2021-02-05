@@ -8,7 +8,7 @@ import com.bugu.things.storage.bean.MqttMessage;
 
 import java.io.File;
 
-import static com.bugu.things.storage.bean.ConstantKt.TEXT;
+import static com.bugu.things.storage.ext.ConstantKt.TEXT;
 
 /**
  * Author by xpl, Date on 2021/1/29.

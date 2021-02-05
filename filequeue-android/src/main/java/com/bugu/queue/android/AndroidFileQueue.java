@@ -1,144 +1,150 @@
 package com.bugu.queue.android;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.text.format.Formatter;
-
-import androidx.core.content.ContextCompat;
 
 import com.bugu.queue.FileQueue;
 import com.bugu.queue.MutableFileQueue;
-import com.bugu.queue.OnFileQueueChanged;
-import com.bugu.queue.OnFileQueueChanged2;
 import com.bugu.queue.header.Header;
-import com.bugu.queue.transform.GsonTransform;
-import com.bugu.queue.transform.ProtobufTransform;
 import com.bugu.queue.transform.Transform;
-import com.bugu.queue.util.FileQueueCompat;
-import com.bugu.queue.util.Size;
-import com.google.protobuf.MessageLite;
 
 import java.util.Locale;
 
 /**
  * Author by xpl, Date on 2021/1/25.
  */
-public class AndroidFileQueue<E> {
+public class AndroidFileQueue<E> implements FileQueue<E> {
     private Context context;
-    private MutableFileQueue<E> fileQueue;
-    private String path;
-    private long maxSize = 10 * Size._G;
-    private OnFileChanged onFileChanged;
+    private MutableFileQueue<E> mFileQueue;
+    private String mPath;
+    private long mMaxSize;
+    private long capacity;
+    private OnFileChanged mOnFileChanged;
 
-    public AndroidFileQueue(final Context context, String path, Transform<E> transform) {
-        this.context = context;
-        this.path = path;
-        checkPermission(context);
-        initFileQueue(path, transform);
-    }
-
-    public AndroidFileQueue(final Context context, String path, Class<E> clz) {
-        this.context = context;
-        this.path = path;
-        checkPermission(context);
-        initFileQueue(path, getTransform(clz));
-    }
-
-  /*  public AndroidFileQueue(final Context context, String path, Class<E> clz, int type) {
-        this.context = context;
-        this.path = path;
-        checkPermission(context);
-        Transform<E> transform = getTransform(clz, type);
-        initFileQueue(path, transform);
-
-    }
-
-    public AndroidFileQueue(final Context context, String path, Class<E> clz) {
-        this(context, path, clz, FileQueueCompat.Type.GSON);
-    }*/
-
-    private void initFileQueue(String path, Transform<E> transform) {
+    private AndroidFileQueue(final Context context, String path, long capacity, long maxSize, Transform<E> transform) {
         if (transform == null) throw new IllegalStateException("没有Transform");
-        this.fileQueue = new MutableFileQueue<E>(path, maxSize, transform);
-        this.fileQueue.setOnFileQueueChanged(new OnFileQueueChanged2() {
-            @Override
-            public void onChanged(FileQueue<?> fileQueue, int type, Header header) {
-                onChanged(fileQueue, type, header, false);
-            }
+        this.context = context;
+        this.mPath = path;
+        this.capacity = capacity;
+        this.mMaxSize = maxSize;
+        checkPermission(context);
 
-            @Override
-            public void onChanged(FileQueue<?> fileQueue, int i, Header fileQueueHeader, boolean full) {
-                long head = fileQueueHeader.getHead();
-                long tail = fileQueueHeader.getTail();
-                long length = fileQueueHeader.getLength();
-                String formatLength = Formatter.formatFileSize(AndroidFileQueue.this.context, fileQueueHeader.getLength());
-                String formatMaxSize = Formatter.formatFileSize(AndroidFileQueue.this.context, maxSize);
-                String ratio = String.format(Locale.getDefault(), "%d%%", length * 100 / maxSize);
-                String logger = "[head = " + head + " tail = " + tail + "]" + formatLength + "/" + formatMaxSize + "[" + ratio + "]";
-                System.out.println(logger);
-                if (onFileChanged != null) {
-                    onFileChanged.onChanged(AndroidFileQueue.this, logger,full);
-                }
+        this.mFileQueue = new MutableFileQueue.Builder<E>()
+                .path(path)
+                .maxSize(mMaxSize)
+                .capacity(capacity)
+                .transform(transform)
+                .build();
+        this.mFileQueue.setOnFileQueueChanged((fileQueue, type, header) -> {
+            long head = header.getHead();
+            long tail = header.getTail();
+            long length = header.getLength();
+            String formatLength = Formatter.formatFileSize(AndroidFileQueue.this.context, header.getLength());
+            String formatMaxSize = Formatter.formatFileSize(AndroidFileQueue.this.context, mMaxSize);
+            String ratio = String.format(Locale.getDefault(), "%d%%", length * 100 / mMaxSize);
+            String logger = "[head = " + head + " tail = " + tail + "]" + formatLength + "/" + formatMaxSize + "[" + ratio + "]";
+            System.out.println(logger);
+            if (mOnFileChanged != null) {
+                mOnFileChanged.onChanged(AndroidFileQueue.this, logger);
+            }
+        });
+        this.mFileQueue.setOnFileQueueStateChanged((fileQueue, state) -> {
+            if (mOnFileChanged != null) {
+                mOnFileChanged.onStateChanged(AndroidFileQueue.this, state == FileQueue.State.FULL);
             }
         });
     }
 
-    private Transform<E> getTransform(Class<E> clz) {
-        return FileQueueCompat.getTransform(clz);
-    }
-
     private void checkPermission(Context context) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        /*if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             throw new IllegalStateException("请申请权限后再使用，权限名称：" + Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        }
+        }*/
     }
 
-    public OnFileChanged getOnFileChanged() {
-        return onFileChanged;
+    public void setOnFileChanged(OnFileChanged mOnFileChanged) {
+        this.mOnFileChanged = mOnFileChanged;
     }
 
-    public void setOnFileChanged(OnFileChanged onFileChanged) {
-        this.onFileChanged = onFileChanged;
-    }
-
+    @Override
     public void close() {
-        fileQueue.close();
+        mFileQueue.close();
     }
 
+    @Override
     public void put(E e) throws Exception {
         checkPermission(context);
-        fileQueue.put(e);
+        mFileQueue.put(e);
     }
 
+    @Override
     public E take() throws Exception {
         checkPermission(context);
-        return fileQueue.take();
+        return mFileQueue.take();
     }
 
+    @Override
     public boolean delete() {
         checkPermission(context);
-        return fileQueue.delete();
+        return mFileQueue.delete();
     }
 
+    @Override
     public boolean isClosed() {
-        return fileQueue.isClosed();
+        return mFileQueue.isClosed();
     }
 
-    Header getHeader() {
+    @Override
+    public Header getHeader() {
         checkPermission(context);
-        return fileQueue.getHeader();
+        return mFileQueue.getHeader();
     }
 
-    public static class Factory {
-        public static <E extends MessageLite> AndroidFileQueue<E> createProtobufFileQueue(Context context, String path, Class<E> clz) {
-            return new AndroidFileQueue<E>(context, path, new ProtobufTransform<E>(clz));
+    @Override
+    public String getPath() {
+        return mFileQueue.getPath();
+    }
 
+    public static class Builder<E> {
+        private Context context;
+        private String path;
+        private long maxSize;
+        private long capacity;
+        private boolean debug;
+        private Transform<E> transform;
+
+        public Builder(Context context) {
+            this.context = context;
         }
 
-        public static <E> AndroidFileQueue<E> createGsonFileQueue(Context context, String path, Class<E> clz) {
-            return new AndroidFileQueue<E>(context, path, new GsonTransform<E>(clz));
+        public Builder<E> path(String path) {
+            this.path = path;
+            return this;
+        }
 
+        public Builder<E> maxSize(long maxSize) {
+            this.maxSize = maxSize;
+            return this;
+        }
+
+        public Builder<E> capacity(long capacity) {
+            this.capacity = capacity;
+            return this;
+        }
+
+        public Builder<E> debug(boolean debug) {
+            this.debug = debug;
+            return this;
+        }
+
+        public Builder<E> transform(Transform<E> transform) {
+            this.transform = transform;
+            return this;
+        }
+
+        public AndroidFileQueue<E> build() {
+            AndroidFileQueue<E> eAndroidFileQueue = new AndroidFileQueue<E>(this.context, this.path, capacity, this.maxSize, transform);
+            return eAndroidFileQueue;
         }
     }
+
 }

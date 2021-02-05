@@ -1,4 +1,4 @@
-package com.bugu.things.storage.bean
+package com.bugu.things.storage.ext
 
 import android.content.Context
 import androidx.appcompat.app.AlertDialog

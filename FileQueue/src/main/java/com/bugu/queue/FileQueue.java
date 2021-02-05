@@ -16,4 +16,11 @@ public interface FileQueue<E> {
     boolean delete();
 
     boolean isClosed();
+
+    public static class State {
+        public static final int CLOSED = 0;
+        public static final int INIT = 1;
+        public static final int OPENED = 1 << 1;
+        public static final int FULL = 1 << 2;
+    }
 }

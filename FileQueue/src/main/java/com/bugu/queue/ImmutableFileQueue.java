@@ -20,6 +20,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * 不可变的FileQueue
+ * <p>
+ * 长度{@link #capacity}不可变
+ * <p>
  * Author by xpl, Date on 2021/1/27.
  */
 public class ImmutableFileQueue<E> implements FileQueue<E> {
@@ -189,10 +193,18 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
 
     }
 
+    private OnFileQueueStateChanged onFileQueueStateChanged;
+
+    public void setOnFileQueueStateChanged(OnFileQueueStateChanged onFileQueueStateChanged) {
+        this.onFileQueueStateChanged = onFileQueueStateChanged;
+    }
+
     private boolean checkDiskFull() {
         boolean result = checkDiskCallback == null ? cDEFAULT.check(this) : checkDiskCallback.check(this);
         if (result) {
-            info("<checkDiskFull> result = " + result + " ,checkDiskCallback = " + checkDiskCallback);
+            if (onFileQueueStateChanged != null) {
+                onFileQueueStateChanged.onChanged(this, State.FULL);
+            }
         }
         return result;
     }
@@ -275,12 +287,15 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
                 if (!validateEmpty()) {
                     notEmpty.signal();
                 }
+                info("[take] ** = " + e.toString() + ",clz = " + e.getClass());
+                return e;
             }
         } finally {
             takeLock.unlock();
         }
         //signalNotFull();
-        return e;
+        warning("take fail");
+        throw new FileQueueException("take fail");
     }
 
     @Override

@@ -7,8 +7,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
-import com.bugu.queue.android.AndroidFileQueue;
+import com.bugu.queue.MutableFileQueue;
 import com.bugu.things.storage.bean.MqttMessage;
+import com.bugu.things.storage.ext.FileQueueExtKt;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -45,7 +46,7 @@ public class GsonUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test01.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
         } catch (Exception e) {
@@ -62,7 +63,7 @@ public class GsonUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test02.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
         } catch (Exception e) {
@@ -79,7 +80,7 @@ public class GsonUnitTest {
             Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test03.txt");
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
             Utils.info(TAG, "fileQueue = " + fileQueue);
             assertNotNull(fileQueue);
             MqttMessage mqttMessage = createMqttMessage(1);
@@ -89,6 +90,7 @@ public class GsonUnitTest {
             Utils.info(TAG, "take : " + take.toString());
             assertNotNull(take);
             assertEquals(mqttMessage.getContent(), take.getContent());
+            Thread.sleep(50000);
             fileQueue.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,7 +107,7 @@ public class GsonUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test04.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -178,10 +180,11 @@ public class GsonUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test05.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -247,10 +250,11 @@ public class GsonUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test06.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -319,10 +323,11 @@ public class GsonUnitTest {
             String path = Utils.getPath(appContext, "/fileQueue/GsonUnitTest/test07.txt");
             delete(path);
             Utils.info(TAG, path);
-            AndroidFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
-            fileQueue.setOnFileChanged((queue, logger) ->
-                    Utils.info(TAG, logger)
+            MutableFileQueue<MqttMessage> fileQueue = createFileQueue(appContext, path);
+            fileQueue.setOnFileQueueChanged((fq, type, header) ->
+                    Utils.info(TAG, FileQueueExtKt.logger(header, appContext, fileQueue.getMax()))
             );
+            fileQueue.setOnFileQueueStateChanged((fq,state)-> Utils.info(TAG,"state = "+state));
             new Thread(() -> {
                 for (int i = 0; i < 100; i++) {
                     try {
@@ -383,7 +388,11 @@ public class GsonUnitTest {
     }
 
     @NotNull
-    private AndroidFileQueue<MqttMessage> createFileQueue(Context appContext, String path) {
-        return new AndroidFileQueue<>(appContext, path, MqttMessage.class);
+    private MutableFileQueue<MqttMessage> createFileQueue(Context appContext, String path) {
+        return new MutableFileQueue.Builder<MqttMessage>().path(path).build();
     }
+
+
 }
+
+

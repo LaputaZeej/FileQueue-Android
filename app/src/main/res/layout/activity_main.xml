@@ -51,8 +51,16 @@
             android:layout_height="0dp"
             android:textColor="#000000"
             android:text="" />
+        <TextView
+            android:background="#f98"
+            android:text="gson"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
     </LinearLayout>
+
 
     <LinearLayout
         android:id="@+id/ll_proto"
@@ -64,7 +72,13 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/ll_gson">
-
+        <TextView
+            android:background="#f98"
+            android:text="protobuf"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
 
         <TextView
             android:layout_weight="1"

@@ -1,6 +1,5 @@
 package com.bugu.queue;
 
-
 import com.bugu.queue.header.Header;
 import com.bugu.queue.transform.Transform;
 import com.bugu.queue.util.Logger;
@@ -11,34 +10,23 @@ import java.io.RandomAccessFile;
 import static com.bugu.queue.ImmutableFileQueue.MIN_SIZE;
 import static com.bugu.queue.ImmutableFileQueue.THRESHOLD_SIZE;
 
-
 /**
  * Author by xpl, Date on 2021/1/27.
  */
 public class MutableFileQueue<E> implements FileQueue<E> {
     private ImmutableFileQueue<E> fileQueue;
-    private OnFileQueueChanged2 onFileQueueChanged;
+    private OnFileQueueChanged onFileQueueChanged;
+    private OnFileQueueStateChanged onFileQueueStateChanged;
     private long max;
-    private static final long MAX_SIZE = Size._G;
+    private static final long MAX_SIZE_DEFAULT = Size._G;
 
     public MutableFileQueue(ImmutableFileQueue<E> fileQueue, long max) {
-        this.max = max;
+        this.max = max <= 0 ? MAX_SIZE_DEFAULT : max;
         initFileQueue(fileQueue);
     }
 
-    public MutableFileQueue(String path, Transform<E> transform) {
-        this(path, MIN_SIZE, MAX_SIZE, transform);
-    }
-
-    public MutableFileQueue(String path, long max, Transform<E> transform) {
-        this(path, MIN_SIZE, max, transform);
-    }
-
-
-    public MutableFileQueue(String path, long capacity, long max, Transform<E> transform) {
-        this.max = max;
-        this.fileQueue = new ImmutableFileQueue<E>(path, capacity, transform);
-        initFileQueue(fileQueue);
+    private MutableFileQueue(String path, long capacity, long max, Transform<E> transform) {
+        this(new ImmutableFileQueue<E>(path, capacity, transform), max);
     }
 
     private void initFileQueue(ImmutableFileQueue<E> fileQueue) {
@@ -48,6 +36,9 @@ public class MutableFileQueue<E> implements FileQueue<E> {
             long max = MutableFileQueue.this.max;
             if (length >= max) {
                 Logger.info("<CheckDiskCallback> length = " + length + " ,max = " + max);
+                if (onFileQueueStateChanged != null) {
+                    onFileQueueStateChanged.onChanged(this, State.FULL);
+                }
                 return true;
             } else {
                 return false;
@@ -61,6 +52,7 @@ public class MutableFileQueue<E> implements FileQueue<E> {
                 onFileQueueChanged.onChanged(fq, type, header);
             }
         });
+
     }
 
     private void tryCapacity(Header fileQueueHeader) {
@@ -72,8 +64,8 @@ public class MutableFileQueue<E> implements FileQueue<E> {
                 length = length + MIN_SIZE;
                 if (length > max) {
                     Logger.info("tryCapacity -> max size");
-                    if (onFileQueueChanged != null) {
-                        onFileQueueChanged.onChanged(this, 0, fileQueueHeader, true);
+                    if (onFileQueueStateChanged != null) {
+                        onFileQueueStateChanged.onChanged(this, State.FULL);
                     }
                     return;
                 }
@@ -87,6 +79,10 @@ public class MutableFileQueue<E> implements FileQueue<E> {
             e.printStackTrace();
         }
 
+    }
+
+    public long getMax() {
+        return max;
     }
 
     @Override
@@ -124,7 +120,53 @@ public class MutableFileQueue<E> implements FileQueue<E> {
         return fileQueue.isClosed();
     }
 
-    public void setOnFileQueueChanged(OnFileQueueChanged2 onFileQueueChanged) {
+    public void setOnFileQueueChanged(OnFileQueueChanged onFileQueueChanged) {
         this.onFileQueueChanged = onFileQueueChanged;
+    }
+
+    public void setOnFileQueueStateChanged(OnFileQueueStateChanged onFileQueueStateChanged) {
+        this.onFileQueueStateChanged = onFileQueueStateChanged;
+        this.fileQueue.setOnFileQueueStateChanged(onFileQueueStateChanged);
+    }
+
+    public static class Builder<E> {
+        private String path;
+        private long maxSize;
+        private long capacity;
+        private boolean debug;
+        private Transform<E> transform;
+
+        public Builder() {
+        }
+
+        public Builder<E> path(String path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder<E> capacity(long capacity) {
+            this.capacity = capacity;
+            return this;
+        }
+
+        public Builder<E> maxSize(long maxSize) {
+            this.maxSize = maxSize;
+            return this;
+        }
+
+        public Builder<E> debug(boolean debug) {
+            this.debug = debug;
+            return this;
+        }
+
+        public Builder<E> transform(Transform<E> transform) {
+            this.transform = transform;
+            return this;
+        }
+
+        public MutableFileQueue<E> build() {
+            MutableFileQueue<E> fileQueue = new MutableFileQueue<>(path, capacity, maxSize, transform);
+            return fileQueue;
+        }
     }
 }
