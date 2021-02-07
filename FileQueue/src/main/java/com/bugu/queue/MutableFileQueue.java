@@ -1,11 +1,12 @@
 package com.bugu.queue;
 
+import com.bugu.queue.converter.Converter;
 import com.bugu.queue.header.Header;
-import com.bugu.queue.transform.Transform;
 import com.bugu.queue.util.Logger;
 import com.bugu.queue.util.Size;
 
 import java.io.RandomAccessFile;
+import java.lang.reflect.Type;
 
 import static com.bugu.queue.ImmutableFileQueue.MIN_SIZE;
 import static com.bugu.queue.ImmutableFileQueue.THRESHOLD_SIZE;
@@ -25,8 +26,8 @@ public class MutableFileQueue<E> implements FileQueue<E> {
         initFileQueue(fileQueue);
     }
 
-    private MutableFileQueue(String path, long capacity, long max, Transform<E> transform) {
-        this(new ImmutableFileQueue<E>(path, capacity, transform), max);
+    private MutableFileQueue(String path, long capacity, long max, Type type,Converter.Factory factory) {
+        this(new ImmutableFileQueue<E>(path, capacity, type,factory), max);
     }
 
     private void initFileQueue(ImmutableFileQueue<E> fileQueue) {
@@ -129,43 +130,49 @@ public class MutableFileQueue<E> implements FileQueue<E> {
         this.fileQueue.setOnFileQueueStateChanged(onFileQueueStateChanged);
     }
 
-    public static class Builder<E> {
+    public static class Builder {
         private String path;
         private long maxSize;
         private long capacity;
+        private Converter.Factory factory;
         private boolean debug;
-        private Transform<E> transform;
+        private Type type;
 
         public Builder() {
         }
 
-        public Builder<E> path(String path) {
+        public Builder path(String path) {
             this.path = path;
             return this;
         }
 
-        public Builder<E> capacity(long capacity) {
+        public Builder capacity(long capacity) {
             this.capacity = capacity;
             return this;
         }
 
-        public Builder<E> maxSize(long maxSize) {
+        public Builder maxSize(long maxSize) {
             this.maxSize = maxSize;
             return this;
         }
 
-        public Builder<E> debug(boolean debug) {
+        public Builder debug(boolean debug) {
             this.debug = debug;
             return this;
         }
 
-        public Builder<E> transform(Transform<E> transform) {
-            this.transform = transform;
+        public Builder type(Type type) {
+            this.type = type;
             return this;
         }
 
-        public MutableFileQueue<E> build() {
-            MutableFileQueue<E> fileQueue = new MutableFileQueue<>(path, capacity, maxSize, transform);
+        public Builder factory(Converter.Factory factory) {
+            this.factory = factory;
+            return this;
+        }
+
+        public <E>MutableFileQueue<E> build() {
+            MutableFileQueue<E> fileQueue = new MutableFileQueue<E>(path, capacity, maxSize, type,factory);
             return fileQueue;
         }
     }

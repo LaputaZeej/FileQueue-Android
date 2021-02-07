@@ -1,3 +1,5 @@
+include ':annatation-compier'
+include ':annatation'
 include ':storage'
 include ':FileQueue'
 include ':app'

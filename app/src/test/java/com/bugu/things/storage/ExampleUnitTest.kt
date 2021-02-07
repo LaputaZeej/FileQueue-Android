@@ -1,12 +1,9 @@
 package com.bugu.things.storage
 
-import com.bugu.things.storage.bean.MqttMessage
+import com.bugu.things.storage.bean.Person
+import com.bugu.things.storage.bean.Pet
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 /**
@@ -17,14 +14,91 @@ import org.junit.Test
 class ExampleUnitTest {
     @Test
     fun t1() {
-//        val assignableFrom =
-//            MessageLite::class.java.isAssignableFrom(_MqttMessage.MqttMessage::class.java)
-//        println("as = $assignableFrom")
-        val s: String? = null
-        val format = String.format("haha->%s", "$s")
-        val java = java.lang.String.format("heihei->%s", "$s")
-        println(format)
-        println(java)
+        // ok
+        val json = createJson()
+        val take = B().take<Person<Pet>>(json)
+        println(take)
+    }
 
+    @Test
+    fun t2() {
+        // ok
+        val json = createJson()
+        val take = B().take<Person<Pet>>(json, object : TypeToken<Person<Pet>>() {})
+        println(take)
+    }
+
+    @Test
+    fun t3() {
+        val gson = Gson()
+        val person = Person("小明", Pet("小狗1号"))
+        val json = gson.toJson(Box(person))
+        val take = B().takeBox<Person<Pet>>(json)
+        println(take)
+    }
+
+    @Test
+    fun t4() {
+        val json = createJson()
+        val take = DD().apply {
+            c = C<Person<Pet>>()
+        }.take<Person<Pet>>(json)
+        println(take)
+    }
+
+    @Test
+    fun t6() {
+        SingletonA.getInstance().test("1")
+        SingletonA.getInstance().test(1)
+        SingletonA.getInstance().test(1f)
+        SingletonA.getInstance().test(listOf<Int>())
+    }
+}
+
+private fun createJson(): String {
+    val gson = Gson()
+    val person = Person("小明", Pet("小狗1号"))
+    val json = gson.toJson(person)
+    return json
+}
+
+class B {
+    val gson: Gson = Gson()
+
+    inline fun <reified T> take(json: String): T {
+        return gson.fromJson(json, object : TypeToken<T>() {}.type)
+    }
+
+    fun <T> take(json: String, token: TypeToken<T>): T {
+        return gson.fromJson(json, token.type)
+    }
+
+    fun <T> takeBox(json: String): T {
+        val s = gson.fromJson<Box<T>>(json, object : TypeToken<Box<T>>() {}.type)
+        return s.data
+    }
+}
+
+data class Box<T>(val data: T)
+
+class C<T> {
+    val gson: Gson = Gson()
+
+    fun take(json: String, token: TypeToken<T>): T {
+        return gson.fromJson(json, token.type)
+    }
+
+    fun take(json: String): T {
+        return gson.fromJson(json, object : TypeToken<T>() {}.type)
+    }
+}
+
+class DD() {
+    var c: C<*>? = null
+
+    fun <T> take(json: String): T? {
+        val real = c as? C<T>
+        val take = real?.take(json)
+        return take
     }
 }

@@ -1,13 +1,17 @@
 package com.bugu.queue;
 
 import com.bugu.queue.bean.FileQueueException;
+import com.bugu.queue.converter.Converter;
+import com.bugu.queue.converter.GsonConverterFactory;
 import com.bugu.queue.header.AbsPointer;
 import com.bugu.queue.header.Header;
 import com.bugu.queue.header.HeaderHelper;
 import com.bugu.queue.header.HeaderState;
 import com.bugu.queue.header.Pointer;
-import com.bugu.queue.transform.HeaderTransform;
-import com.bugu.queue.transform.Transform;
+import com.bugu.queue.persistence.HeaderPersistence;
+import com.bugu.queue.persistence.Persistence;
+import com.bugu.queue.persistence.PersistenceRequest;
+import com.bugu.queue.persistence.PersistenceResponse;
 import com.bugu.queue.util.Logger;
 import com.bugu.queue.util.RafHelper;
 import com.bugu.queue.util.Size;
@@ -15,14 +19,15 @@ import com.bugu.queue.util.Size;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Type;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 不可变的FileQueue
+ * ImmutableFileQueue
  * <p>
- * 长度{@link #capacity}不可变
+ * {@link #capacity}
  * <p>
  * Author by xpl, Date on 2021/1/27.
  */
@@ -30,11 +35,13 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
 
 
     public static final long MIN_SIZE = Size._M << 1; // 2M
-    public static final long THRESHOLD_SIZE = MIN_SIZE >> 3; // 128K 一个数据不能大于128K
+    public static final long THRESHOLD_SIZE = MIN_SIZE >> 3; // 128K
 
     private String path;
     private long capacity;
-    private Transform<E> transform;
+    private Converter.Factory factory = GsonConverterFactory.create();
+    private Persistence mPersistence = new Persistence.PersistenceImpl();
+
     private Header fileQueueHeader;
     private RandomAccessFile writeRaf;
     private RandomAccessFile headerRaf;
@@ -42,7 +49,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     private Pointer headPoint = new AbsPointer.HeadPointer();
     private Pointer tailPoint = new AbsPointer.TailPointer();
     private Pointer lengthPoint = new AbsPointer.LengthPointer();
-    private final HeaderTransform headerTransform = new HeaderTransform();
+    private final HeaderPersistence mHeaderPersistence = new HeaderPersistence.HeaderPersistenceImpl();
     private AtomicInteger state = new AtomicInteger(STATE_CLOSE);
     private static final int STATE_CLOSE = 0;
     private static final int STATE_ON = 1;
@@ -53,14 +60,15 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     private ImmutableFileQueue() {
     }
 
-    public ImmutableFileQueue(String path, Transform<E> transform) {
-        this(path, MIN_SIZE, transform);
+    public ImmutableFileQueue(String path, Type type, Converter.Factory factory) {
+        this(path, MIN_SIZE, type, factory);
     }
 
-    public ImmutableFileQueue(String path, long capacity, Transform<E> transform) {
+    public ImmutableFileQueue(String path, long capacity, Type type, Converter.Factory factory) {
         this.path = path;
+        this.mType = type;
         this.capacity = Math.max(capacity, MIN_SIZE);
-        this.transform = transform;
+        this.factory = factory;
         initHeader();
     }
 
@@ -100,6 +108,10 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         }
     }
 
+    public void setFactory(Converter.Factory factory) {
+        this.factory = factory;
+    }
+
     private void createHeader(RandomAccessFile r) throws Exception {
         info("create header start ...");
         Header header = new Header();
@@ -109,13 +121,13 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         header.setTail(headerLength);
         header.setLength(capacity);
         r.setLength(capacity);
-        this.headerTransform.write(header, r);
+        this.mHeaderPersistence.write(header, r);
         this.fileQueueHeader = header;
     }
 
     private void parseHeader(RandomAccessFile r) throws Exception {
         info("parse header start ...");
-        Header read = this.headerTransform.read(r);
+        Header read = this.mHeaderPersistence.read(r);
         if (read != null) {
             HeaderState headerState = HeaderHelper.validateHeader(read);
             info("headerState : " + headerState);
@@ -185,6 +197,8 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
             if (!(validateFull() || checkDiskFull())) {
                 notFull.signal(); // 通知
             }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         } finally {
             putLock.unlock();
         }
@@ -227,15 +241,26 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         }
     }
 
+    private Type mType;
+
+    public void setType(Type type) {
+        this.mType = type;
+    }
+
     private long enqueue(E e) throws Exception {
         long lastTail = fileQueueHeader.getTail();
         writeRaf.seek(lastTail);
-        transform.write(e, writeRaf);
+        Converter<E, PersistenceRequest> converter = (Converter<E, PersistenceRequest>) factory.requestBodyConverter(mType, null, null, this);
+        if (converter == null) throw new FileQueueException("convert is null");
+        PersistenceRequest convert = converter.convert(e);
+        mPersistence.write(convert, writeRaf);
+        //transform.write(e, writeRaf);
         long currentTail = writeRaf.getFilePointer();
         this.fileQueueHeader.setTail(currentTail);
         createHeaderRandomAccessFile();
         tailPoint.write(headerRaf, currentTail);
         return currentTail;
+
     }
 
     private void createWriteRandomAccessFile() throws Exception {
@@ -312,7 +337,10 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     private E dequeue() throws Exception {
         long lastHead = fileQueueHeader.getHead();
         readRaf.seek(lastHead);
-        return transform.read(readRaf);
+        Converter<PersistenceResponse, E> converter = (Converter<PersistenceResponse, E>) factory.responseBodyConverter(mType, null, this);
+        PersistenceResponse response = mPersistence.read(readRaf);
+        E convert = converter.convert(response);
+        return convert;
     }
 
     @Override

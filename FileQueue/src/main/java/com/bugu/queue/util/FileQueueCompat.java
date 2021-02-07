@@ -4,10 +4,6 @@ import com.bugu.queue.FileQueue;
 import com.bugu.queue.header.AbsPointer;
 import com.bugu.queue.header.Header;
 import com.bugu.queue.header.Pointer;
-import com.bugu.queue.transform.GsonTransform;
-import com.bugu.queue.transform.ProtobufTransform;
-import com.bugu.queue.transform.Transform;
-import com.google.protobuf.MessageLite;
 
 import java.io.RandomAccessFile;
 import java.lang.annotation.ElementType;
@@ -108,15 +104,6 @@ public class FileQueueCompat {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    public static <E> Transform<E> getTransform(Class<E> clz) {
-        if (MessageLite.class.isAssignableFrom(clz)) {
-            ProtobufTransform<?> transform = new ProtobufTransform(clz);
-            return (Transform<E>) transform;
-        } else {
-            return new GsonTransform<E>(clz);
         }
     }
 }

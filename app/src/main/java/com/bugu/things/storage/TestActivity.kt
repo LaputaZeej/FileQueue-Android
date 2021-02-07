@@ -18,6 +18,7 @@ import com.bugu.things.storage.bean.*
 import com.bugu.things.storage.ext.*
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
+import com.bugu.things.storage.bean.MqttMessage
 
 class TestActivity : AppCompatActivity() {
     private var fileQueue: MutableFileQueue<List<MqttMessage>>? = null

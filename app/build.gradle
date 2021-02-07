@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'com.google.protobuf'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 29
@@ -78,6 +79,8 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
 //    implementation project(path: ':filequeue-android')
     implementation project(path: ':storage')
+    implementation project(path: ':annatation')
+    kapt project(':annatation-compier')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'

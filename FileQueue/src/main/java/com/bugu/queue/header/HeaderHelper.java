@@ -1,11 +1,6 @@
 package com.bugu.queue.header;
 
 import com.bugu.queue.Version;
-import com.bugu.queue.transform.HeaderTransform;
-import com.bugu.queue.util.RafHelper;
-
-import java.io.FileNotFoundException;
-import java.io.RandomAccessFile;
 
 /**
  * Author by xpl, Date on 2021/1/27.
@@ -32,29 +27,5 @@ public class HeaderHelper {
             return HeaderState.NOT_COMPLETE;
         }
         return HeaderState.COMPLETE;
-    }
-
-    public static Header parseHeader(String path) {
-        Header header = null;
-        RandomAccessFile raf = null;
-        try {
-            raf = RafHelper.createR(path);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        try {
-            if (raf != null) {
-                raf = RafHelper.createR(path);
-                header = new HeaderTransform().read(raf);
-                if (validateHeader(header) == HeaderState.INVALID) {
-                    header = null;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            RafHelper.close(raf);
-        }
-        return header;
     }
 }

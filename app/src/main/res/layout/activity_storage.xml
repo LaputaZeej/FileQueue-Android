@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+
+    <LinearLayout
+        android:id="@+id/ll_gson"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="#FFFFFF"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@id/ll_proto"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <Button
+            android:id="@+id/btn_put_gson"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="存" />
+
+        <Button
+            android:id="@+id/btn_take_gson"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="取" />
+
+        <Button
+            android:id="@+id/btn_delete_gson"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="删" />
+
+        <TextView
+            android:id="@+id/tv_info_gson"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#000000"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_weight="1"
+            android:id="@+id/tv_message_gson"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:textColor="#000000"
+            android:text="" />
+        <TextView
+            android:background="#f98"
+            android:text="gson"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/ll_proto"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="#000000"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ll_gson">
+        <TextView
+            android:background="#f98"
+            android:text="protobuf"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:layout_weight="1"
+            android:id="@+id/tv_message_proto"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:textColor="#FFFFFF"
+            android:text="" />
+
+        <TextView
+            android:id="@+id/tv_info_proto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_delete_proto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="删除"
+           />
+        <Button
+            android:id="@+id/btn_take_proto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="取"
+            />
+
+        <Button
+            android:id="@+id/btn_put_proto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="存"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
