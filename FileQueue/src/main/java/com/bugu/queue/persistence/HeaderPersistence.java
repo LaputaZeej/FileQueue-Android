@@ -21,7 +21,7 @@ public interface HeaderPersistence {
         @Override
         public void write(Header header, RandomAccessFile raf) throws Exception {
             try {
-                Logger.info("write Head : " + header.toString());
+                if (DEBUG) Logger.info("write Head : " + header.toString());
                 raf.writeLong(header.getVersion());
                 raf.writeLong(header.getHead());
                 raf.writeLong(header.getTail());
@@ -41,7 +41,7 @@ public interface HeaderPersistence {
                 header.setTail(raf.readLong());
                 header.setLength(raf.readLong());
                 header.setExtra(raf.readLong());
-                Logger.info("readHead : " + header.toString());
+                if (DEBUG) Logger.info("readHead : " + header.toString());
                 return header;
             } catch (Exception e) {
                 e.printStackTrace();

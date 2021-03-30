@@ -28,8 +28,7 @@ public interface Persistence {
         @Override
         public PersistenceResponse read(RandomAccessFile raf) throws Exception {
             byte[] bytes = read0(raf);
-            PersistenceResponse response = new PersistenceResponse();
-            response.setData(bytes);
+            PersistenceResponse response = new PersistenceResponse(bytes);
             return response;
         }
 

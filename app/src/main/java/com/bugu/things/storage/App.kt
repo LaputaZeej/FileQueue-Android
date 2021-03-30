@@ -15,7 +15,8 @@ class App : Application() {
 
 
     companion object {
+
         @JvmStatic
-        var INSTANCE: Context? = null
+        lateinit var INSTANCE: Context
     }
 }

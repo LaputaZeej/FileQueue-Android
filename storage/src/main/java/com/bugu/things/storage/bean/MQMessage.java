@@ -50,4 +50,14 @@ public class MQMessage<T> {
     public void setData(T data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "MQMessage{" +
+                "time=" + time +
+                ", type=" + type +
+                ", index=" + index +
+                ", data=" + data +
+                '}';
+    }
 }

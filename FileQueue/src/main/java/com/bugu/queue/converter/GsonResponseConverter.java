@@ -31,11 +31,8 @@ public final class GsonResponseConverter<T> implements Converter<PersistenceResp
     public T convert(PersistenceResponse value) throws IOException {
         //Logger.info("GsonResponseConverter # convert");
         Reader r = new InputStreamReader(new ByteArrayInputStream(value.getData()),UTF_8);
-        JsonReader jsonReader = gson.newJsonReader(r);
-        try {
+        try (JsonReader jsonReader = gson.newJsonReader(r)) {
             return adapter.read(jsonReader);
-        } finally {
-            jsonReader.close();
         }
     }
 }

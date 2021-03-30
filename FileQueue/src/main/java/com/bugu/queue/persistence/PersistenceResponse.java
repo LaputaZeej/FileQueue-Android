@@ -4,7 +4,12 @@ package com.bugu.queue.persistence;
  * Author by xpl, Date on 2021/2/7.
  */
 public class PersistenceResponse {
+
     private byte[] data;
+
+    public PersistenceResponse(byte[] data) {
+        this.data = data;
+    }
 
     public byte[] getData() {
         return data;

@@ -153,6 +153,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     @Override
     public boolean delete() {
         // todo 正在添加/获取时删除？
+        info("[delete]");
         close();
         File file = new File(path);
         if (file.exists()) {
@@ -164,7 +165,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
 
     private void checkState() throws FileQueueException {
         if (isClosed()) {
-            throw new FileQueueException("fileQueue 已经关闭");
+            throw new FileQueueException("fileQueue is closed");
         }
     }
 
@@ -173,7 +174,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         checkState();
         if (e == null) throw new NullPointerException();
         final ReentrantLock putLock = this.putLock;
-        //info("start put ...............");
+        info("start put ...............");
         putLock.lockInterruptibly();
         if (isClosed()) {
             info("start put closed");
@@ -248,6 +249,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
     }
 
     private long enqueue(E e) throws Exception {
+        info("[put] ** = " + e.toString() + ",clz = " + e.getClass());
         long lastTail = fileQueueHeader.getTail();
         writeRaf.seek(lastTail);
         Converter<E, PersistenceRequest> converter = (Converter<E, PersistenceRequest>) factory.requestBodyConverter(mType, null, null, this);
@@ -312,7 +314,6 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
                 if (!validateEmpty()) {
                     notEmpty.signal();
                 }
-                info("[take] ** = " + e.toString() + ",clz = " + e.getClass());
                 return e;
             }
         } finally {
@@ -340,6 +341,7 @@ public class ImmutableFileQueue<E> implements FileQueue<E> {
         Converter<PersistenceResponse, E> converter = (Converter<PersistenceResponse, E>) factory.responseBodyConverter(mType, null, this);
         PersistenceResponse response = mPersistence.read(readRaf);
         E convert = converter.convert(response);
+        info("[take] ** = " + convert.toString() + ",clz = " + convert.getClass());
         return convert;
     }
 

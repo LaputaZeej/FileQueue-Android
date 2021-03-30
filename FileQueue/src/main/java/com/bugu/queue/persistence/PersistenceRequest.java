@@ -5,11 +5,11 @@ package com.bugu.queue.persistence;
  */
 public class PersistenceRequest {
 
+    private byte[] data;
+
     public PersistenceRequest(byte[] data) {
         this.data = data;
     }
-
-    private byte[] data;
 
     public byte[] getData() {
         return data;

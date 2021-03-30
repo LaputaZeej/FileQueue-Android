@@ -1,6 +1,7 @@
 package com.bugu.things.annatation.compier;
 
 import com.bugu.things.annatation.StorageType;
+import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
@@ -30,7 +31,7 @@ public class FactoryGroupedClasses {
      * Will be added to the name of the generated factory class
      */
     private static final String SUFFIX = "Factory";
-    private static final String SUFFIX_SINGLETON = "Singleton";
+    private static final String SUFFIX_SINGLETON = "ZeejSingleton";
 
     private String qualifiedClassName;
 
@@ -108,6 +109,10 @@ public class FactoryGroupedClasses {
             // todo
             String singleSuperClassName = "";
             String singleFactoryClassName = simpleName + SUFFIX_SINGLETON;
+
+            //     private Storage<String> mStorage
+           // FieldSpec.builder()
+
             TypeSpec singleTypeSpec = TypeSpec.classBuilder(singleFactoryClassName)/*.addMethod(method.build())*/.build();
             JavaFile.builder(packageName, singleTypeSpec).build().writeTo(filer);
         }

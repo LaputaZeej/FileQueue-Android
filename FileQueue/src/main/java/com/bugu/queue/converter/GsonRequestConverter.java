@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import okio.Buffer;
 
@@ -19,7 +20,7 @@ import okio.Buffer;
  */
 public final class GsonRequestConverter<T> implements Converter<T, PersistenceRequest> {
     private static final MediaType MEDIA_TYPE = MediaType.parse("application/json; charset=UTF-8");
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
+    private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
     private final Gson gson;
     private final TypeAdapter<T> adapter;

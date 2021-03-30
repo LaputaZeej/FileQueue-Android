@@ -5,6 +5,8 @@ import com.bugu.things.storage.bean.Pet
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.junit.Test
+import java.math.BigDecimal
+import kotlin.math.roundToInt
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -52,6 +54,31 @@ class ExampleUnitTest {
         SingletonA.getInstance().test(1)
         SingletonA.getInstance().test(1f)
         SingletonA.getInstance().test(listOf<Int>())
+    }
+
+    @Test
+    fun t7() {
+
+        test(0.59f)
+        test(1000000.04f)
+
+    }
+
+    fun test(value: Float) {
+        val ratio = 100f
+        val result = value * ratio
+        println(result)
+        println(result.roundToInt())
+        println("======================")
+
+        val s = BigDecimal(value.toString()).times(BigDecimal(ratio.toString()))
+        println("s = ${s}")
+        println("s = ${s.toFloat()}")
+        println("s = ${s.toInt()}")
+        println("s = ${s.intValueExact()}")
+
+        // 1 2
+        // 3 4 5 6 7 8 9 0
     }
 }
 
@@ -102,3 +129,6 @@ class DD() {
         return take
     }
 }
+
+
+
